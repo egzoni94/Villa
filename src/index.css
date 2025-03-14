@@ -1,0 +1,79 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+  padding: 0;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+/* Main container styles */
+.main_container {
+  height: 100vh;
+  width: 100%;
+  background: black;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dark div .main_container {
+  background-color: #121212;
+  color: #fff;
+}
+
+.light div .main_container {
+  background-color: #fff;
+  color: #000;
+}
+.dark_theme_container {
+  position: absolute;
+  top: 0;
+  right: 100px;
+}
+.rooms_container {
+  margin-right: 30px;
+  margin-left: 30px;
+  justify-content: space-between;
+}
+.modalFormMainContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+}
+.MuiPaper-root {
+  box-shadow: "none" !important;
+  --Paper-overlay: none !important;
+}
+/* Media query for screens under 600px */
+@media screen and (max-width: 600px) {
+  .rooms_container {
+    overflow: auto;
+    margin-top: 100px;
+  }
+  .main_container {
+    height: 100%;
+  }
+}
