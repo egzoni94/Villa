@@ -18,7 +18,7 @@ export function HomePage() {
     isOpen: boolean;
     isExtraRoomType: boolean;
     minuteLeft: number;
-    enteredOn: string;
+    enteredOn?: string;
     orderNo?: number;
     clientPlateNo?: string;
     clientDocument?: string;
