@@ -16,6 +16,12 @@ const LoginPage: React.FC = () => {
     document.body.className = theme;
   }, [theme]);
 
+  useEffect(() => {
+    if (localStorage.getItem("access_token")) {
+      navigate("/home");
+    }
+  }, []);
+
   const handleLogin = async () => {
     if (username && password) {
       const url = "api/Login";
@@ -41,6 +47,7 @@ const LoginPage: React.FC = () => {
         variant: "outlined",
         fullWidth: true,
         margin: "normal",
+        autofill:false,
       },
     },
     {

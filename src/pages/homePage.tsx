@@ -1,25 +1,22 @@
-import { useEffect, useState } from "react";
-import { handleGet } from "../utilities/handleApiCalls";
+import { useEffect, useState, useMemo } from "react";
+import { handleGet, handlePost, handlePut } from "../utilities/handleApiCalls";
 import { useTheme } from "../utilities/theme";
 import { FormControlLabel, Switch, Card } from "@mui/material";
 import { House } from "lucide-react";
 import ModalFormMain from "../utilities/modalFormMain";
 import { Colors } from "../utilities/colors";
+import { toast, ToastContainer } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import { isNumericInput } from "../utilities/utils";
 
 export function HomePage() {
   type Room = {
     roomNo: string;
     roomType: string;
     roomMovementId: number;
-    roomModel: string;
-    roomModelDescription: string;
-    roomTypeDescription: string;
     title: string;
     isOpen: boolean;
     isExtraRoomType: boolean;
-    minuteLeft: number;
-    enteredOn?: string;
-    orderNo?: number;
     clientPlateNo?: string;
     clientDocument?: string;
     clientCarName?: string;
@@ -29,236 +26,746 @@ export function HomePage() {
     isDebt: boolean;
     hours?: number;
     price?: number;
+    roomModel: string;
+    isCustom?: boolean;
   };
 
-  const [allRoams, setAllRoams] = useState<Room[]>([]);
-  const { toggleTheme, theme } = useTheme(); // theme is now typed as 'light' | 'dark'
-  const [isModalOpen, setIsModalOpen] = useState({ type: "" }); // State to control modal visibility
-  const [roomTypes, setRoomTypes] = useState<
-    { value: string; label: string }[]
-  >([]);
-  const defaultRoom: Room = {
-    roomNo: "",
-    roomType: "",
-    roomMovementId: 0,
-    roomModel: "",
-    roomModelDescription: "",
-    roomTypeDescription: "",
-    title: "",
-    isOpen: false,
-    isExtraRoomType: false,
-    minuteLeft: 0,
-    enteredOn: "",
-    orderNo: 0,
-    clientPlateNo: "",
-    clientDocument: "",
-    clientCarName: "",
-    startTime: "",
-    spendTime: "",
-    amountDebt: 0,
-    isDebt: false,
-    hours: 0,
-    price: 0,
-  };
-
-  type RoomModel = {
-    code: string;
-    description: string;
-  };
-
-  const [selectedRoom, setSelectedRoom] = useState<Room>(defaultRoom); // Always a Room object
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
+  const [activeRoom, setActiveRoom] = useState<Room | null>(null);
+  const [roomTypes, setRoomTypes] = useState<{ value: string; label: string; price?: number; hours?: number; isCustom?: boolean }[]>([]);
+  const { toggleTheme, theme } = useTheme();
+  const [modalType, setModalType] = useState<"" | "new" | "details" | "extraDetails" | "continue" | "confirmPayment">("");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchRooms = async () => {
       try {
         const response = await handleGet("api/Room/GetRooms");
-        console.log(response, "response");
         if (response.isSuccessfull) {
-          setAllRoams(response?.data as Room[]);
+          setAllRooms(response.data as Room[]);
         }
-
-        const roomTypesResponse = await handleGet("api/RoomModel/GetAll");
-        if (roomTypesResponse.isSuccessfull) {
-          const roomTypes: RoomModel[] = roomTypesResponse.data; // Explicitly define type for roomTypes
-          setRoomTypes(
-            roomTypes.map((room: RoomModel) => ({
-              value: room.code,
-              label: room.description,
-            }))
-          );
+        if (response.error){
+          localStorage.setItem("access_token","");
+          navigate("/");
         }
       } catch (err) {
         console.error("Error fetching rooms:", err);
       }
     };
-
-    fetchData();
-  }, []);
+    fetchRooms();
+  }, [navigate]);
 
   useEffect(() => {
     document.body.className = theme;
   }, [theme]);
 
-  const handleRoomClick = () => {
-    console.log("hereee");
-    // setSelectedRoom(room); // Set the selected room
-    setIsModalOpen({ type: "new" }); // Open the modal
+  const handleRoomClick = async (room: Room) => {
+    const body = { ...room, isDebt: true };
+    setActiveRoom(body);
+    if (room.isOpen){
+      const detailsRoomResponse = await handleGet(
+        `api/Room/GetRoomDetails?roomMovementId=${room.roomMovementId}`
+      );
+      if (detailsRoomResponse.isSuccessfull) {
+        setExtraRoomDetails(detailsRoomResponse.data);
+      }
+
+      setModalType("details");
+    } 
+    if (!room.isOpen) {
+      const res = await handleGet(`api/RoomType/GetBasic?roomModel=${room.roomModel}`);
+      if (res.isSuccessfull) {
+        setRoomTypes(
+          res.data.map((type: any) => ({
+            value: type.code,
+            label: type.description,
+            hours: type.hours,
+            isCustom: type.isCustom,
+            price: type.price,
+          }))
+        );
+      }
+      setModalType("new");
+    } 
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen({ type: "" }); // Close the modal
+  const handleOpenRoom = async () => {
+    if (!activeRoom) return;
+    const body = {
+      clientCarName: activeRoom.clientCarName,
+      clientDocument: activeRoom.clientDocument,
+      clientPlateNo: activeRoom.clientPlateNo,
+      roomNo: activeRoom.roomNo,
+      roomType: activeRoom.roomType,
+      isDebt: activeRoom.isDebt,
+      price: activeRoom.price,
+      hours: activeRoom.hours,
+    };
+    console.log(body)
+    const res = await handlePost("api/Room/Openroom", body);
+    if (res.isSuccessfull) {
+      toast.success("Dhoma u hap!");
+      setTimeout(() =>{
+        setModalType("")
+        window.location.reload()
+      }
+      , 1750);
+    } else {
+      toast.error(res.errorMessage);
+    }
+  };
+   
+  const updateRoomField = (field: keyof Room, value: any) => {
+    if (!activeRoom) return;
+    setActiveRoom((prev) => (prev ? { ...prev, [field]: value } : null));
+  };
+  
+  const [extraRoomTypes, setExtraRoomTypes] = useState<{ value: string; label: string; price?: number; hours?: number; isCustom?: boolean, isDebt?:boolean }[]>([]);
+  const [extraRoomDetails, setExtraRoomDetails] = useState<{
+    hours: number;
+    price: number;
+    isDebt: boolean;
+    roomType: string;
+    roomMovementId: number;
+    isCustom?: boolean; // Add isCustom field here
+    clientCarName?: string;
+    clientDocument?: string;
+    clientPlateNo?:string;
+    roomTitle?:string;
+    roomTypeDescription?:string;
+    spendTime?:string;
+    startTime?:string;
+    total?:number;
+    roomAmount?:number;
+    roomDebt?: number;
+    gratisAmount?: number,
+    marketAmount?: number,
+    marketDebt?: number,
+    extras?:string
+
+  }>({
+    hours: 0,
+    price: 0,
+    isDebt: false,
+    roomType: "",
+    roomMovementId: 0,
+    clientCarName: "",
+    clientDocument: "",
+    clientPlateNo: "",
+    roomTitle: "",
+    roomTypeDescription:"",
+    spendTime:"",
+    startTime:"",
+    total:0,
+    roomAmount:0,
+    roomDebt:0,
+    gratisAmount:0,
+    marketAmount:0,
+    marketDebt:0,
+    extras:""
+
+  }); 
+
+  const [continueRoomDetails, setContinueRoomDetails] = useState<{
+    hours: number;
+    price: number;
+    isDebt: boolean;
+    roomType: string;
+    roomMovementId: number;
+  }>({
+    hours: 0,
+    price: 0,
+    isDebt: false,
+    roomType: "",
+    roomMovementId: 0
+  });
+
+
+  const handleContinueRoom = async() => {
+    console.log(activeRoom)
+    if (!activeRoom) return;
+
+    const detailResponse = await handleGet(`api/RoomType/GetExtras?roomModel=${activeRoom?.roomModel}`)
+    if (detailResponse.isSuccessfull) {
+      setExtraRoomTypes(
+        detailResponse.data.map((type: any) => ({
+          value: type.code,
+          label: type.description,
+          hours: type.hours,
+          isCustom: type.isCustom,
+          price: type.price
+        })))
+    }
+    setModalType("continue")
+  }
+
+  const handleAcceptContinueRoom = async () => {
+    const body = {
+      roomMovementId: activeRoom?.roomMovementId,
+      roomType: continueRoomDetails?.roomType,
+      isDebt: continueRoomDetails?.isDebt,
+      hours: continueRoomDetails?.hours,
+      price: continueRoomDetails?.price,
+    };
+    const extraRoomResponse = await handlePost(
+      `api/Room/AddExtraInRoom`,
+      body
+    );
+    if (extraRoomResponse.isSuccessfull) {
+      toast.success("Dhoma u vazhdua!");
+      setTimeout(() => {
+        window.location.reload();
+      },1750)
+    }
   };
 
-  const handleDetailRoom = (item: Room) => {
-    console.log(item);
-    setIsModalOpen({ type: "details" });
-  };
+  const handleCloseRoom = async () => {
+    setModalType("");
+    if(!activeRoom) return;
+    const handleCloseRoomResponse = await handlePut(
+      `api/Room/CloseRoom?roomMovementId=${activeRoom?.roomMovementId}`
+    );
+    if (handleCloseRoomResponse.isSuccessfull) {
+      toast.success("Dhoma u mbyll");
+      setTimeout(() => {
+        window.location.reload();
+      },1750)
+    }
+  }
 
-  const handleExtraDetailsRoom = (item: Room) => {
-    console.log(item);
-    setIsModalOpen({ type: "extraDetails" });
-  };
+  const [paymentMessage, setPaymentMessage] = useState<{ data: string } | undefined>();
 
-  const fieldConfig = [
-    {
-      type: "text" as const,
-      label: "Dokument",
-      props: {
-        value: selectedRoom?.clientDocument || "", // Fallback to an empty string if null
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-          if (selectedRoom) {
-            setSelectedRoom((prevDetails) => ({
-              ...prevDetails,
-              clientDocument: e.target.value,
-            }));
-          }
-        },
-        variant: "outlined",
-        fullWidth: true,
-        margin: "normal",
-      },
-    },
-    {
-      type: "text" as const,
-      label: "Vetura",
-      props: {
-        value: selectedRoom?.clientCarName || "", // Fallback to an empty string if null
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-          if (selectedRoom) {
-            setSelectedRoom((prevDetails) => ({
-              ...prevDetails,
-              clientCarName: e.target.value,
-            }));
-          }
-        },
-        variant: "outlined",
-        fullWidth: true,
-        margin: "normal",
-      },
-    },
-    {
-      type: "text" as const,
-      label: "Tabela",
-      props: {
-        value: selectedRoom?.clientPlateNo || "", // Fallback to an empty string if null
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-          if (selectedRoom) {
-            setSelectedRoom((prevDetails) => ({
-              ...prevDetails,
-              clientPlateNo: e.target.value,
-            }));
-          }
-        },
-        variant: "outlined",
-        fullWidth: true,
-        margin: "normal",
-      },
-    },
-    {
-      type: "select" as const,
-      label: "Lloji dhomes",
-      options: roomTypes, // Directly pass the roomTypes (already in { value: string, label: string } format)
-      props: {
-        value: selectedRoom?.roomType || "", // default value
-        onChange: (e: React.ChangeEvent<{ value: unknown }>) => {
-          setSelectedRoom((prevDetails) => ({
-            ...prevDetails,
-            roomType: e.target.value as string, // Assuming roomType is string
-          }));
-        },
-        variant: "outlined",
-        fullWidth: true,
-        margin: "normal",
-      },
-    },
-    {
-      type: "text" as const,
-      label: "Ore",
-      props: {
-        value: selectedRoom?.hours || "", // Fallback to an empty string if null
-        // onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-        //   if (selectedRoom) {
-        //     setSelectedRoom((prevDetails) => ({
-        //       ...prevDetails,
-        //       clientPlateNo: e.target.value,
-        //     }));
-        //   }
-        // },
-        variant: "outlined",
-        fullWidth: true,
-        margin: "normal",
-      },
-    },
-    {
-      type: "text" as const,
-      label: "Qmimi",
-      options: roomTypes,
-      props: {
-        value: selectedRoom?.price || "", // default value
-        // onChange: (e: React.ChangeEvent<{ value: unknown }>) => {
-        //   setSelectedRoom((prevDetails) => ({
-        //     ...prevDetails,
-        //     isDebt: !selectedRoom?.isDebt, // Assuming roomType is string
-        //   }));
-        // },
-        variant: "outlined",
-        fullWidth: true,
-        margin: "normal",
-      },
-    },
-    {
-      type: "checkbox" as const,
-      label: "Pagoi",
-      options: roomTypes,
-      props: {
-        value: selectedRoom?.isDebt || "", // default value
-        onChange: (e: React.ChangeEvent<{ value: unknown }>) => {
-          setSelectedRoom((prevDetails) => ({
-            ...prevDetails,
-            isDebt: !selectedRoom?.isDebt, // Assuming roomType is string
-          }));
-        },
-        variant: "outlined",
-        fullWidth: true,
-        margin: "normal",
-      },
-    },
-    {
-      type: "button" as const,
-      label: "Hap",
-      props: {
-        variant: "contained",
-        color: "primary",
-        onClick: () => {
-          console.log("Form submitted");
-          handleCloseModal(); // Close the modal after submission
+  const handlePaymentModal=async () => {
+    console.log(activeRoom)
+    if (!activeRoom) return;
+    const paymentResponse = await handleGet(
+      `api/Room/GetConfirmMessage?roomMovementId=${activeRoom?.roomMovementId}`
+    );
+    console.log(paymentResponse)
+    if (paymentResponse.isSuccessfull) {
+      setPaymentMessage(paymentResponse)
+      setModalType("confirmPayment")
+    }
+  }
+
+  const handleAcceptPaymentRoom = async () => {
+    if (!activeRoom) return;
+    const response = await handlePut(
+      `api/Room/ConfirmAllTheDebt?roomMovementId=${activeRoom?.roomMovementId}`
+    );
+    if (response.isSuccessfull) {
+      toast.success(`Pagesa u perfundua me sukses per dhomen ${activeRoom?.title}`)
+      setTimeout(()=>{
+        window.location.reload();
+      },1750)
+    }
+  }
+
+  const fieldConfig = useMemo(() => {
+    if (!activeRoom) return [];
+    const selectedType = roomTypes.find((type) => type.value === activeRoom.roomType);
+
+    return [
+      {
+        type: "text" as const,
+        label: "Dokument",
+        props: {
+          value: activeRoom.clientDocument || "",
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+            updateRoomField("clientDocument", e.target.value),
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: activeRoom?.isOpen ? true : false,
         },
       },
-    },
-  ];
+      {
+        type: "text" as const,
+        label: "Vetura",
+        props: {
+          value: activeRoom.clientCarName || "",
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+            updateRoomField("clientCarName", e.target.value),
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: activeRoom?.isOpen ? true : false,
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Tabela",
+        props: {
+          value: activeRoom.clientPlateNo || "",
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+            updateRoomField("clientPlateNo", e.target.value),
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: activeRoom?.isOpen ? true : false,
+        },
+      },
+      {
+        type: "select" as const,
+        label: "Modeli",
+        options: roomTypes,
+        props: {
+          value: activeRoom.roomType || "",
+          onChange: (e: React.ChangeEvent<{ value: unknown }>) => {
+            const value = e.target.value as string;
+            const selected = roomTypes.find((t) => t.value === value);
+            updateRoomField("roomType", value);
+            updateRoomField("price", selected?.price || 0);
+            updateRoomField("hours", selected?.hours || 0);
+          },
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: activeRoom?.isOpen ? true : false,
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Ore",
+        props: {
+          value: activeRoom?.hours || 0,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: !selectedType?.isCustom ? true : false,
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+            setActiveRoom({ ...activeRoom, hours: Number(e.target.value) }),
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Qmimi",
+        props: {
+          value: activeRoom?.price || 0,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: !selectedType?.isCustom ? true : false,
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+            setActiveRoom({ ...activeRoom, price: Number(e.target.value) }),
+        },
+      },
+      {
+        type: "checkbox" as const,
+        label: "Pagoi",
+        props: {
+          checked: !activeRoom.isDebt,
+          onChange: () => updateRoomField("isDebt", !activeRoom.isDebt),
+          fullWidth: true,
+          disabled: activeRoom?.isOpen ? true : false,
+        },
+      },
+      {
+        type: "group" as const,
+        fields: [
+          {
+            type: "button" as const,
+            label: "Hap",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: handleOpenRoom,
+            },
+          },
+          {
+            type: "button" as const,
+            label: "Mbyll",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: () => handleCloseRoom,
+            },
+          },
+         
+        ],
+      },
+    ];
+  }, [activeRoom, roomTypes]);
+
+  const continueFieldConfig = useMemo(() => {
+    if (!activeRoom) return [];
+    return [
+      {
+        type: "select" as const,
+        label: "Modeli",
+        options: extraRoomTypes,
+        props: {
+          value: continueRoomDetails.roomType || "",
+          onChange: (e: React.ChangeEvent<{ value: unknown }>) => {
+            const value = e.target.value as string;
+            const selected = extraRoomTypes.find((t) => t.value === value);
+            setContinueRoomDetails({
+              ...continueRoomDetails,
+              roomType: value,
+              price: selected?.price || 0,
+              hours: selected?.hours || 0,
+            });
+          },
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Koha",
+        props: {
+          value: continueRoomDetails.hours || "",
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: continueRoomDetails.roomType === "T" ? false : true,
+          onChange: (e: React.ChangeEvent<{ value: unknown }>) => {
+            const value = e.target.value as string;
+            if (isNumericInput(value)) {
+              setContinueRoomDetails({
+                ...continueRoomDetails,
+                hours: Number(value),
+              });
+            }
+          },
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Qmimi",
+        props: {
+          value: continueRoomDetails.price || "",
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: continueRoomDetails.roomType === "T" ? false : true,
+          onChange: (e: React.ChangeEvent<{ value: unknown }>) => {
+            const value = e.target.value as string;
+            if (isNumericInput(value)) {
+              setContinueRoomDetails({
+                ...continueRoomDetails,
+                price: Number(value),
+              });
+            }
+          },
+        },
+      },
+      {
+        type: "checkbox" as const,
+        label: "Pagoi",
+        props: {
+          checked: !continueRoomDetails.isDebt,
+          onChange: () =>
+            setContinueRoomDetails({
+              ...continueRoomDetails,
+              isDebt: !continueRoomDetails.isDebt,
+            }),
+          fullWidth: true,
+        },
+      },
+      {
+        type: "group" as const,
+        fields: [
+          {
+            type: "button" as const,
+            label: "Konfirmo",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: handleAcceptContinueRoom,
+            },
+          },
+          {
+            type: "button" as const,
+            label: "Mbyll",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: () => setModalType(""),
+            },
+          },
+        ],
+      },
+    ];
+  }, [continueRoomDetails, extraRoomDetails, extraRoomTypes]);
+
+  const detailsFieldConfig = useMemo(() => {
+    if (!extraRoomDetails) return [];
+
+    return [
+      {
+        type: "text" as const,
+        label: "Dhoma",
+        props: {
+          value: extraRoomDetails.roomTitle,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: true,
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Tipi",
+        props: {
+          value: extraRoomDetails.roomTypeDescription,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: true,
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Kerri",
+        props: {
+          value: extraRoomDetails.clientCarName,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: true,
+        },
+      },
+
+      {
+        type: "text" as const,
+        label: "Dokumenti",
+        props: {
+          value: extraRoomDetails.clientDocument,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: true,
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Tabela",
+        props: {
+          value: extraRoomDetails.clientPlateNo,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: true,
+        },
+      },
+      ...(extraRoomDetails.startTime
+        ? [
+            {
+              type: "text" as const,
+              label: "Koha e Hyrjes",
+              props: {
+                value: extraRoomDetails.startTime,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      ...(extraRoomDetails.extras
+        ? [
+            {
+              type: "text" as const,
+              label: "Extra",
+              props: {
+                value: extraRoomDetails.extras,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      ...(extraRoomDetails.spendTime
+        ? [
+            {
+              type: "text" as const,
+              label: "Koha e kaluar",
+              props: {
+                value: extraRoomDetails.spendTime,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      ...(extraRoomDetails.gratisAmount
+        ? [
+            {
+              type: "text" as const,
+              label: "Gratis",
+              props: {
+                value: extraRoomDetails.gratisAmount,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      ...(extraRoomDetails.marketAmount
+        ? [
+            {
+              type: "text" as const,
+              label: "Borxhi total market",
+              props: {
+                value: extraRoomDetails.marketAmount,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      ...(extraRoomDetails.marketDebt
+        ? [
+            {
+              type: "text" as const,
+              label: "Borxhi ne market",
+              props: {
+                value: extraRoomDetails.marketDebt,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      ...(extraRoomDetails.roomAmount
+        ? [
+            {
+              type: "text" as const,
+              label: "Borxhi total per dhome",
+              props: {
+                value: extraRoomDetails.roomAmount,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      ...(extraRoomDetails.roomDebt
+        ? [
+            {
+              type: "text" as const,
+              label: "Borxhi per Dhome",
+              props: {
+                value: extraRoomDetails.roomDebt,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      ...(extraRoomDetails.total
+        ? [
+            {
+              type: "text" as const,
+              label: "Totali",
+              props: {
+                value: extraRoomDetails.total,
+                variant: "outlined",
+                fullWidth: true,
+                margin: "normal",
+                disabled: true,
+              },
+            },
+          ]
+        : []),
+      {
+        type: "group" as const,
+        fields: [
+          {
+            type: "button" as const,
+            label: "Vazhdo",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: handleContinueRoom,
+            },
+          },
+          ...( (extraRoomDetails.roomDebt ?? 0) + (extraRoomDetails.marketDebt ?? 0) > 0 
+          ? [
+              {
+                type: "button" as const,
+                label: "Konfirmo Pagesesn",
+                props: {
+                  variant: "contained",
+                  color: "warning",
+                  onClick: handlePaymentModal,
+                },
+              },
+            ]
+          : []),
+          {
+            type: "button" as const,
+            label: "Mbyll",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: handleCloseRoom,
+            },
+          },
+        ],
+      },
+    ];
+  }, [extraRoomDetails]);
+
+  const confirmFieldConfig = useMemo(() => {
+    if (!paymentMessage) return [];
+
+    return [
+      {
+        type: "description" as const,
+        label: paymentMessage.data,
+        props:{
+          variant: "contained",
+          color: "primary",
+        }
+      },
+      {
+        type: "group" as const,
+        fields: [
+          {
+            type: "button" as const,
+            label: "Konfirmo",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: handleAcceptPaymentRoom,
+            },
+          },
+          {
+            type: "button" as const,
+            label: "Mbyll",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: () => setModalType(""),
+            },
+          },
+        ],
+      },
+    ];
+  }, [paymentMessage]);
+
 
   return (
     <div className="main_container">
+      <ToastContainer />
       <div className="dark_theme_container">
         <FormControlLabel
           control={<Switch checked={theme === "dark"} onChange={toggleTheme} />}
@@ -268,65 +775,33 @@ export function HomePage() {
 
       <div
         className="rooms_container"
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "20px",
-          // overflow: "hidden",
-        }}
+        style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}
       >
-        {allRoams?.length > 0 ? (
-          allRoams.map((item) => (
+        {allRooms.length > 0 ? (
+          allRooms.map((room) => (
             <div
-              key={item.roomNo}
+              key={room.roomNo}
               style={{
-                flexShrink: "1",
-                boxSizing: "border-box",
                 height: "140px",
                 cursor: "pointer",
                 position: "relative",
-                marginBottom: "15px",
               }}
             >
-              <p
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "14px",
-                }}
-                // color:{theme === "dark" ?  "#000" : "#fff"}}
-              >
-                {item?.title}
+              <p style={{ textAlign: "center", fontSize: "14px" }}>
+                {room.roomNo}
               </p>
-              <Card
-                sx={{
-                  width: "120px",
-                  boxShadow: "none",
-                }}
-              >
+              <Card sx={{ width: "120px", boxShadow: "none" }}>
                 <House
                   width={120}
                   height={140}
                   style={{
-                    fill: item?.isOpen
+                    fill: room.isOpen
                       ? Colors(theme).houseBusyFill
-                      : item?.isExtraRoomType
+                      : room.isExtraRoomType
                       ? Colors(theme).houseExtraFillColor
                       : Colors(theme).houseFreeFill,
-                    background: theme === "dark" ? "#121212" : "#fff",
                   }}
-                  // onClick={() => handleRoomClick(item)} // Trigger room click
-                  onClick={() => {
-                    if (!item?.isOpen) {
-                      handleRoomClick(); // Action for when the item is not open
-                    } else if (item?.isOpen) {
-                      handleDetailRoom(item); // Action for when the item is open
-                    } else {
-                      handleExtraDetailsRoom(item); // Default action
-                    }
-                  }}
+                  onClick={() => handleRoomClick(room)}
                 />
               </Card>
             </div>
@@ -336,32 +811,53 @@ export function HomePage() {
         )}
       </div>
 
-      {/* {isModalOpen?.type && selectedRoom && (
-        <ModalFormMain
-          fieldConfig={fieldConfig}
-          onSubmit={() => {
-            handleCloseModal();
-          }}
-          onClose={() => {
-            setIsModalOpen({ type: "" });
-          }}
-          zIndex={10}
-          theme={theme}
-        />
-      )} */}
-      {isModalOpen?.type === "new" && (
-        <ModalFormMain
-          fieldConfig={fieldConfig}
-          onSubmit={() => {
-            handleCloseModal();
-          }}
-          onClose={() => {
-            setIsModalOpen({ type: "" });
-          }}
-          zIndex={10}
-          theme={theme}
-        />
+      {modalType === "new" && activeRoom && (
+        <div style={{ position: "relative", zIndex: 10 }}>
+          <ModalFormMain
+            fieldConfig={fieldConfig}
+            onClose={() => setModalType("")}
+            zIndex={10}
+            theme={theme}
+            key={`modal-new-${activeRoom.roomNo}`}
+          />
+        </div>
       )}
+
+      {modalType === "details" && activeRoom && (
+        <div style={{ position: "relative", zIndex: 10 }}>
+          <ModalFormMain
+            fieldConfig={detailsFieldConfig}
+            onClose={() => setModalType("")}
+            zIndex={10}
+            theme={theme}
+            key={`modal-details-${activeRoom.roomNo}`}
+          />
+        </div>
+      )}
+
+      {modalType === "continue" && activeRoom && (
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <ModalFormMain
+            fieldConfig={continueFieldConfig}
+            onClose={() => setModalType("")}
+            zIndex={20}
+            theme={theme}
+            key={`modal-continue-${activeRoom.roomNo}`}
+          />
+        </div>
+      )}
+
+      {modalType === "confirmPayment" && activeRoom && (
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <ModalFormMain
+            fieldConfig={confirmFieldConfig}
+            onClose={() => setModalType("")}
+            zIndex={20}
+            theme={theme}
+            key={`modal-confirm-${activeRoom.roomNo}`}
+          />
+        </div>
+      )} 
     </div>
   );
 }

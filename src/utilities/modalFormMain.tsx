@@ -21,12 +21,22 @@ type SelectOption = {
   label: string;
 };
 
-type FieldConfig = {
-  type: "text" | "select" | "checkbox" | "button"; // Added 'button' type
+type BaseFieldConfig = {
   label?: string;
-  options?: SelectOption[]; // For 'select' type only
-  props: Record<string, any>; // Generic props to be passed to components
+  options?: SelectOption[];
+  props: Record<string, any>;
 };
+
+type InputFieldConfig = BaseFieldConfig & {
+  type: "text" | "select" | "checkbox" | "button" | "description";
+};
+
+type GroupFieldConfig = {
+  type: "group";
+  fields: FieldConfig[];
+};
+
+type FieldConfig = InputFieldConfig | GroupFieldConfig;
 
 interface ModalFormMainProps {
   fieldConfig: FieldConfig[]; // fieldConfig should be an array of FieldConfig
@@ -45,20 +55,42 @@ const ModalFormMain: React.FC<ModalFormMainProps> = ({
 }) => {
   // Renders individual field based on the type
   const renderComponent = (field: FieldConfig) => {
+    if (field.type === "group") {
+      return (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent:"space-between" }}>
+          {field.fields.map((subField, idx) => (
+            <div key={idx} style={{ maxWidth:"100px"}}>
+              {renderComponent(subField)}
+            </div>
+          ))}
+        </div>
+      );
+    }
+  
     switch (field.type) {
+      case "description":
+        return (
+          <div style={{ color: "gray", fontSize: "14px" }}>{field.label}</div>
+        );
       case "text":
         return (
           <TextField
             label={field.label}
             {...(field.props as TextFieldProps)}
+            style={{ height: "20px" }}
             fullWidth
           />
         );
       case "select":
         return (
-          <FormControl {...field.props.formControlProps} fullWidth>
+          <FormControl fullWidth style={{ height: "20px" }}>
             <InputLabel>{field.label}</InputLabel>
-            <Select {...(field.props.selectProps as SelectProps)}>
+            <Select
+              {...(field.props as SelectProps)}
+              onChange={(e) => {
+                field.props?.onChange?.(e);
+              }}
+            >
               {field.options?.map((option, index) => (
                 <MenuItem key={index} value={option.value}>
                   {option.label}
@@ -76,14 +108,18 @@ const ModalFormMain: React.FC<ModalFormMainProps> = ({
         );
       case "button":
         return (
-          <Button {...(field.props as ButtonProps)} onClick={onSubmit}>
-            {field.label}
-          </Button>
+              <Button
+      {...(field.props as ButtonProps)}
+      onClick={field.props?.onClick}
+    >
+      {field.label}
+    </Button>
         );
       default:
         return null;
     }
   };
+  
 
   return (
     <div
@@ -92,6 +128,9 @@ const ModalFormMain: React.FC<ModalFormMainProps> = ({
         zIndex,
         background: theme === "light" ? "#fff" : "#121212", // Darker background for dark mode
         color: theme === "light" ? "#000" : "#fff", // Ensure text is readable
+        display:"flex",
+        gap: "20px"
+
       }}
     >
       {/* Optional Close Button */}
@@ -119,7 +158,7 @@ const ModalFormMain: React.FC<ModalFormMainProps> = ({
       {fieldConfig.map((field, index) => (
         <div
           key={index}
-          style={{ marginBottom: "16px", width: "50%", maxWidth: "350px" }}
+          style={{ marginBottom: "20px", width: "50%", maxWidth: "350px" }}
         >
           {renderComponent(field)}
         </div>

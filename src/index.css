@@ -52,7 +52,7 @@ code {
   justify-content: space-between;
 }
 .modalFormMainContainer {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -67,6 +67,9 @@ code {
   box-shadow: "none" !important;
   --Paper-overlay: none !important;
 }
+/* .MuiInputBase-input,.MuiSelect-select { 
+  height: 10px !important;
+} */
 /* Media query for screens under 600px */
 @media screen and (max-width: 600px) {
   .rooms_container {
