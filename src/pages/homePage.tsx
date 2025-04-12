@@ -34,7 +34,68 @@ export function HomePage() {
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const [roomTypes, setRoomTypes] = useState<{ value: string; label: string; price?: number; hours?: number; isCustom?: boolean }[]>([]);
   const { toggleTheme, theme } = useTheme();
-  const [modalType, setModalType] = useState<"" | "new" | "details" | "extraDetails" | "continue" | "confirmPayment">("");
+  const [modalType, setModalType] = useState<"" | "new" | "details" | "extraDetails" | "continue" | "confirmPayment" | "mistake" | "change">("");
+  const [openRooms, setOpenRooms] = useState<{ value: string; label: string }[]>([]);
+  const [openRoomDetails, setOpenRoomDetails] = useState({actualRoomMovementId: {}, newRoomNo: {}, newRoomTitle: {}});
+  const [continueRoomDetails, setContinueRoomDetails] = useState<{
+    hours: number;
+    price: number;
+    isDebt: boolean;
+    roomType: string;
+    roomMovementId: number;
+  }>({
+    hours: 0,
+    price: 0,
+    isDebt: false,
+    roomType: "",
+    roomMovementId: 0
+  });
+
+  const [extraRoomTypes, setExtraRoomTypes] = useState<{ value: string; label: string; price?: number; hours?: number; isCustom?: boolean, isDebt?:boolean }[]>([]);
+  const [extraRoomDetails, setExtraRoomDetails] = useState<{
+    hours: number;
+    price: number;
+    isDebt: boolean;
+    roomType: string;
+    roomMovementId: number;
+    isCustom?: boolean; // Add isCustom field here
+    clientCarName?: string;
+    clientDocument?: string;
+    clientPlateNo?:string;
+    roomTitle?:string;
+    roomTypeDescription?:string;
+    spendTime?:string;
+    startTime?:string;
+    total?:number;
+    roomAmount?:number;
+    roomDebt?: number;
+    gratisAmount?: number,
+    marketAmount?: number,
+    marketDebt?: number,
+    extras?:string
+
+  }>({
+    hours: 0,
+    price: 0,
+    isDebt: false,
+    roomType: "",
+    roomMovementId: 0,
+    clientCarName: "",
+    clientDocument: "",
+    clientPlateNo: "",
+    roomTitle: "",
+    roomTypeDescription:"",
+    spendTime:"",
+    startTime:"",
+    total:0,
+    roomAmount:0,
+    roomDebt:0,
+    gratisAmount:0,
+    marketAmount:0,
+    marketDebt:0,
+    extras:""
+  }); 
+  const [paymentMessage, setPaymentMessage] = useState<{ data: string } | undefined>();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -101,7 +162,6 @@ export function HomePage() {
       price: activeRoom.price,
       hours: activeRoom.hours,
     };
-    console.log(body)
     const res = await handlePost("api/Room/Openroom", body);
     if (res.isSuccessfull) {
       toast.success("Dhoma u hap!");
@@ -119,72 +179,9 @@ export function HomePage() {
     if (!activeRoom) return;
     setActiveRoom((prev) => (prev ? { ...prev, [field]: value } : null));
   };
-  
-  const [extraRoomTypes, setExtraRoomTypes] = useState<{ value: string; label: string; price?: number; hours?: number; isCustom?: boolean, isDebt?:boolean }[]>([]);
-  const [extraRoomDetails, setExtraRoomDetails] = useState<{
-    hours: number;
-    price: number;
-    isDebt: boolean;
-    roomType: string;
-    roomMovementId: number;
-    isCustom?: boolean; // Add isCustom field here
-    clientCarName?: string;
-    clientDocument?: string;
-    clientPlateNo?:string;
-    roomTitle?:string;
-    roomTypeDescription?:string;
-    spendTime?:string;
-    startTime?:string;
-    total?:number;
-    roomAmount?:number;
-    roomDebt?: number;
-    gratisAmount?: number,
-    marketAmount?: number,
-    marketDebt?: number,
-    extras?:string
-
-  }>({
-    hours: 0,
-    price: 0,
-    isDebt: false,
-    roomType: "",
-    roomMovementId: 0,
-    clientCarName: "",
-    clientDocument: "",
-    clientPlateNo: "",
-    roomTitle: "",
-    roomTypeDescription:"",
-    spendTime:"",
-    startTime:"",
-    total:0,
-    roomAmount:0,
-    roomDebt:0,
-    gratisAmount:0,
-    marketAmount:0,
-    marketDebt:0,
-    extras:""
-
-  }); 
-
-  const [continueRoomDetails, setContinueRoomDetails] = useState<{
-    hours: number;
-    price: number;
-    isDebt: boolean;
-    roomType: string;
-    roomMovementId: number;
-  }>({
-    hours: 0,
-    price: 0,
-    isDebt: false,
-    roomType: "",
-    roomMovementId: 0
-  });
-
 
   const handleContinueRoom = async() => {
-    console.log(activeRoom)
     if (!activeRoom) return;
-
     const detailResponse = await handleGet(`api/RoomType/GetExtras?roomModel=${activeRoom?.roomModel}`)
     if (detailResponse.isSuccessfull) {
       setExtraRoomTypes(
@@ -233,15 +230,11 @@ export function HomePage() {
     }
   }
 
-  const [paymentMessage, setPaymentMessage] = useState<{ data: string } | undefined>();
-
   const handlePaymentModal=async () => {
-    console.log(activeRoom)
     if (!activeRoom) return;
     const paymentResponse = await handleGet(
       `api/Room/GetConfirmMessage?roomMovementId=${activeRoom?.roomMovementId}`
     );
-    console.log(paymentResponse)
     if (paymentResponse.isSuccessfull) {
       setPaymentMessage(paymentResponse)
       setModalType("confirmPayment")
@@ -261,6 +254,63 @@ export function HomePage() {
     }
   }
 
+  const handleMistakeModal = () => {
+    setModalType("mistake");
+  };
+
+  const handleChangeRoom = async () => {
+    if (!activeRoom) return 
+    const availableRooms = await handleGet(`api/Room/GetAvailableRooms?roomModel=${activeRoom?.roomModel}`)
+    if (!availableRooms?.data?.length) {
+      toast.error("Nuk ka dhoma te lira ");
+      setTimeout(()=>{
+        window.location.reload();
+      },1750)
+    }
+    setOpenRooms(
+      availableRooms?.data.map((room : any) => ({
+        value: room.roomNo,
+        label: room.title,
+      }))
+    );
+
+    setOpenRoomDetails({
+      actualRoomMovementId: activeRoom?.roomMovementId,
+      newRoomTitle: "",
+      newRoomNo: "",
+    });
+    setModalType("change");
+  };
+
+  const handleAcceptMistakeRoom = async () => {
+    if (!activeRoom) return;
+    const response = await handlePut(`api/Room/Mistake?roomMovementId=${activeRoom.roomMovementId}`)
+    if (response.isSuccessfull){
+      toast.success("Dhoma u mbyll");
+      setTimeout(()=>{
+        window.location.reload();
+      },1750)
+    } else {
+      toast.error(response?.errorMessage);
+    }
+  }
+
+  const handleAcceptChangeRoom = async () => {
+    if (!activeRoom) return;
+    const response = await handlePut(`api/Room/ChangeRoom?roomMovementId=${openRoomDetails.actualRoomMovementId}&roomNo=${openRoomDetails.newRoomNo}`)
+    if (response.isSuccessfull){
+      toast.success(
+        `Dhoma u ndrrua nga dhoma ${activeRoom.title} te ${openRoomDetails.newRoomTitle}`
+      );
+      setTimeout(()=>{
+        window.location.reload();
+      },1750)
+    } else {
+      toast.error(response?.errorMessage);
+    }
+  }
+
+
   const fieldConfig = useMemo(() => {
     if (!activeRoom) return [];
     const selectedType = roomTypes.find((type) => type.value === activeRoom.roomType);
@@ -268,11 +318,11 @@ export function HomePage() {
     return [
       {
         type: "text" as const,
-        label: "Dokument",
+        label: "Tabela",
         props: {
-          value: activeRoom.clientDocument || "",
+          value: activeRoom.clientPlateNo || "",
           onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-            updateRoomField("clientDocument", e.target.value),
+            updateRoomField("clientPlateNo", e.target.value),
           variant: "outlined",
           fullWidth: true,
           margin: "normal",
@@ -294,11 +344,11 @@ export function HomePage() {
       },
       {
         type: "text" as const,
-        label: "Tabela",
+        label: "Dokument",
         props: {
-          value: activeRoom.clientPlateNo || "",
+          value: activeRoom.clientDocument || "",
           onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-            updateRoomField("clientPlateNo", e.target.value),
+            updateRoomField("clientDocument", e.target.value),
           variant: "outlined",
           fullWidth: true,
           margin: "normal",
@@ -491,6 +541,15 @@ export function HomePage() {
   }, [continueRoomDetails, extraRoomDetails, extraRoomTypes]);
 
   const detailsFieldConfig = useMemo(() => {
+    let timeLimit = false;
+    if (!extraRoomDetails) return [];
+    if (extraRoomDetails.spendTime){
+      const time = extraRoomDetails.spendTime.split(" - ");
+      const [hour, minute] = time[1].split(":");
+      if (Number(hour) < 1 && Number(minute) < 6) {
+        timeLimit = true;
+      }
+    }
     if (!extraRoomDetails) return [];
 
     return [
@@ -518,6 +577,17 @@ export function HomePage() {
       },
       {
         type: "text" as const,
+        label: "Tabela",
+        props: {
+          value: extraRoomDetails.clientPlateNo,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: true,
+        },
+      },
+      {
+        type: "text" as const,
         label: "Kerri",
         props: {
           value: extraRoomDetails.clientCarName,
@@ -527,7 +597,6 @@ export function HomePage() {
           disabled: true,
         },
       },
-
       {
         type: "text" as const,
         label: "Dokumenti",
@@ -539,17 +608,7 @@ export function HomePage() {
           disabled: true,
         },
       },
-      {
-        type: "text" as const,
-        label: "Tabela",
-        props: {
-          value: extraRoomDetails.clientPlateNo,
-          variant: "outlined",
-          fullWidth: true,
-          margin: "normal",
-          disabled: true,
-        },
-      },
+      
       ...(extraRoomDetails.startTime
         ? [
             {
@@ -565,6 +624,21 @@ export function HomePage() {
             },
           ]
         : []),
+        ...(extraRoomDetails.spendTime
+          ? [
+              {
+                type: "text" as const,
+                label: "Koha e kaluar",
+                props: {
+                  value: extraRoomDetails.spendTime,
+                  variant: "outlined",
+                  fullWidth: true,
+                  margin: "normal",
+                  disabled: true,
+                },
+              },
+            ]
+          : []),
       ...(extraRoomDetails.extras
         ? [
             {
@@ -572,21 +646,6 @@ export function HomePage() {
               label: "Extra",
               props: {
                 value: extraRoomDetails.extras,
-                variant: "outlined",
-                fullWidth: true,
-                margin: "normal",
-                disabled: true,
-              },
-            },
-          ]
-        : []),
-      ...(extraRoomDetails.spendTime
-        ? [
-            {
-              type: "text" as const,
-              label: "Koha e kaluar",
-              props: {
-                value: extraRoomDetails.spendTime,
                 variant: "outlined",
                 fullWidth: true,
                 margin: "normal",
@@ -693,7 +752,7 @@ export function HomePage() {
             label: "Vazhdo",
             props: {
               variant: "contained",
-              color: "primary",
+              color: "info",
               onClick: handleContinueRoom,
             },
           },
@@ -701,7 +760,7 @@ export function HomePage() {
           ? [
               {
                 type: "button" as const,
-                label: "Konfirmo Pagesesn",
+                label: "Pagesa",
                 props: {
                   variant: "contained",
                   color: "warning",
@@ -710,12 +769,36 @@ export function HomePage() {
               },
             ]
           : []),
+          ...(timeLimit ? [
+            {
+              type:"button" as const,
+              label:"Gabim",
+              props: {
+                variant: "contained",
+                color: "error",
+                onClick: handleMistakeModal,
+              }
+
+            }
+          ]:[]),
+          ...(timeLimit ? [
+            {
+              type:"button" as const,
+              label:"Ndrro",
+              props: {
+                variant: "contained",
+                color: "error",
+                onClick: handleChangeRoom,
+              }
+
+            }
+          ]:[]),
           {
             type: "button" as const,
             label: "Mbyll",
             props: {
               variant: "contained",
-              color: "primary",
+              color: "info",
               onClick: handleCloseRoom,
             },
           },
@@ -762,6 +845,109 @@ export function HomePage() {
     ];
   }, [paymentMessage]);
 
+  const mistakeFieldConfig = useMemo(() => {
+    const message = "A jeni i sigurt qe doni te mbyllni dhomes sepse eshte gabim ? "
+
+    return [
+      {
+        type: "description" as const,
+        label: message,
+        props:{
+          variant: "contained",
+          color: "primary",
+        }
+      },
+      {
+        type: "group" as const,
+        fields: [
+          {
+            type: "button" as const,
+            label: "Konfirmo",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: handleAcceptMistakeRoom,
+            },
+          },
+          {
+            type: "button" as const,
+            label: "Mbyll",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: () => setModalType(""),
+            },
+          },
+        ],
+      },
+    ];
+  }, [activeRoom]);
+
+  const changeFieldConfig = useMemo(() => {
+    if (!activeRoom) return []
+    return [
+      {
+        type: "select" as const,
+        label: "Dhoma aktuale",
+        options: [
+          { value: activeRoom.title, label: activeRoom.title }, 
+        ],
+        props: {
+          value: `${activeRoom.title}`,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: true, 
+        },
+      },
+      {
+        type: "select" as const,
+        label: "Dhoma ardhshme",
+        options: openRooms,
+        props: {
+          value: openRoomDetails.newRoomNo || "",
+          onChange: (e: React.ChangeEvent<{ value: unknown }>) => {
+            const value = e.target.value as string;
+            const selected = openRooms.find((t) => t.value === value);
+            if (selected) {
+              setOpenRoomDetails({
+                ...openRoomDetails,
+                newRoomNo: selected.value,
+                newRoomTitle: selected.label,
+              });
+            }
+          },
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+        },
+      },
+      {
+        type: "group" as const,
+        fields: [
+          {
+            type: "button" as const,
+            label: "Konfirmo",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: handleAcceptChangeRoom,
+            },
+          },
+          {
+            type: "button" as const,
+            label: "Mbyll",
+            props: {
+              variant: "contained",
+              color: "primary",
+              onClick: () => setModalType(""),
+            },
+          },
+        ],
+      },
+    ];
+  },[activeRoom, openRoomDetails]);
+
 
   return (
     <div className="main_container">
@@ -772,7 +958,6 @@ export function HomePage() {
           label={theme === "light" ? "Switch to Dark" : "Switch to Light"}
         />
       </div>
-
       <div
         className="rooms_container"
         style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}
@@ -788,7 +973,7 @@ export function HomePage() {
               }}
             >
               <p style={{ textAlign: "center", fontSize: "14px" }}>
-                {room.roomNo}
+                {room.title}
               </p>
               <Card sx={{ width: "120px", boxShadow: "none" }}>
                 <House
@@ -810,7 +995,6 @@ export function HomePage() {
           <>Loading...</>
         )}
       </div>
-
       {modalType === "new" && activeRoom && (
         <div style={{ position: "relative", zIndex: 10 }}>
           <ModalFormMain
@@ -822,7 +1006,6 @@ export function HomePage() {
           />
         </div>
       )}
-
       {modalType === "details" && activeRoom && (
         <div style={{ position: "relative", zIndex: 10 }}>
           <ModalFormMain
@@ -834,7 +1017,6 @@ export function HomePage() {
           />
         </div>
       )}
-
       {modalType === "continue" && activeRoom && (
         <div style={{ position: "relative", zIndex: 20 }}>
           <ModalFormMain
@@ -846,7 +1028,6 @@ export function HomePage() {
           />
         </div>
       )}
-
       {modalType === "confirmPayment" && activeRoom && (
         <div style={{ position: "relative", zIndex: 20 }}>
           <ModalFormMain
@@ -857,7 +1038,30 @@ export function HomePage() {
             key={`modal-confirm-${activeRoom.roomNo}`}
           />
         </div>
-      )} 
+      )}
+      {modalType === "mistake" && activeRoom && (
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <ModalFormMain
+            fieldConfig={mistakeFieldConfig}
+            onClose={() => setModalType("")}
+            zIndex={20}
+            theme={theme}
+            key={`modal-confirm-${activeRoom.roomNo}`}
+          />
+        </div>
+      )}
+      {modalType === "change" && activeRoom && (
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <ModalFormMain
+            fieldConfig={changeFieldConfig}
+            onClose={() => setModalType("")}
+            zIndex={20}
+            theme={theme}
+            key={`modal-confirm-${activeRoom.roomNo}`}
+          />
+        </div>
+      )}
+      
     </div>
   );
 }

@@ -158,7 +158,7 @@ const ModalFormMain: React.FC<ModalFormMainProps> = ({
       {fieldConfig.map((field, index) => (
         <div
           key={index}
-          style={{ marginBottom: "20px", width: "50%", maxWidth: "350px" }}
+          style={{ marginBottom: "20px", width: "50%", maxWidth: "600px" }}
         >
           {renderComponent(field)}
         </div>
