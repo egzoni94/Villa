@@ -5,6 +5,7 @@ import { handlePost } from "../utilities/handleApiCalls";
 import { Container, FormControlLabel, Switch, Typography } from "@mui/material";
 import "../index.css";
 import { useTheme } from "../utilities/theme";
+import { toast, ToastContainer } from "react-toastify";
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -31,8 +32,11 @@ const LoginPage: React.FC = () => {
         localStorage.setItem("access_token", response.data);
         navigate("/home");
       }
+      else if (!response.isSuccessfull) {
+        toast.error(response.errorMessage);
+      }
     } else {
-      alert("Invalid credentials!");
+      toast.error("Plotesoni username dhe password!");
     }
   };
 
@@ -75,11 +79,12 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="main_container">
+      <ToastContainer />
       <div className="dark_theme_container">
-        {/* <h6>{theme === "light" ? "Light Mode" : "Dark Mode"}</h6> */}
         <FormControlLabel
           control={<Switch checked={theme === "dark"} onChange={toggleTheme} />}
-          label={theme === "light" ? "Switch to Dark" : "Switch to Light"}
+          // label={theme === "light" ? "Switch to Dark" : "Switch to Light"}
+          label={""}
         />
       </div>
       <Container maxWidth="sm">

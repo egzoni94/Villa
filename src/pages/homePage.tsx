@@ -8,6 +8,7 @@ import { Colors } from "../utilities/colors";
 import { toast, ToastContainer } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { isNumericInput } from "../utilities/utils";
+import { MainHeader } from "./mainHeader";
 
 export function HomePage() {
   type Room = {
@@ -954,9 +955,11 @@ export function HomePage() {
       <ToastContainer />
       <div className="dark_theme_container">
         <FormControlLabel
-          control={<Switch checked={theme === "dark"} onChange={toggleTheme} />}
-          label={theme === "light" ? "Switch to Dark" : "Switch to Light"}
-        />
+            control={<Switch checked={theme === "dark"} onChange={toggleTheme} />}
+            // label={theme === "light" ? "Switch to Dark" : "Switch to Light"}
+            label=""
+          />
+        <MainHeader/>
       </div>
       <div
         className="rooms_container"

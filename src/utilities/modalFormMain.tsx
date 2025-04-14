@@ -28,7 +28,7 @@ type BaseFieldConfig = {
 };
 
 type InputFieldConfig = BaseFieldConfig & {
-  type: "text" | "select" | "checkbox" | "button" | "description";
+  type: "text" | "select" | "checkbox" | "button" | "description" | "title";
 };
 
 type GroupFieldConfig = {
@@ -72,6 +72,19 @@ const ModalFormMain: React.FC<ModalFormMainProps> = ({
         return (
           <div style={{ color: "gray", fontSize: "14px" }}>{field.label}</div>
         );
+      case "title":
+      return (
+        <div
+          style={{
+            color: "gray",
+            fontSize: "20px",
+            textAlign: "center",
+            padding: "8px",
+          }}
+        >
+          {field.label}
+        </div>
+      );
       case "text":
         return (
           <TextField

@@ -44,7 +44,10 @@ code {
 .dark_theme_container {
   position: absolute;
   top: 0;
-  right: 100px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 .rooms_container {
   margin-right: 30px;
@@ -67,6 +70,15 @@ code {
   box-shadow: "none" !important;
   --Paper-overlay: none !important;
 }
+.total-row {
+  background-color: #3ca133;  /* Light gray background */
+  font-weight: bold;  /* Bold text */
+  color: #000;  /* Set text color */
+}
+.total-row:hover{
+  background-color: #3ca133 !important;
+  color: #000;
+}
 /* .MuiInputBase-input,.MuiSelect-select { 
   height: 10px !important;
 } */
@@ -75,6 +87,17 @@ code {
   .rooms_container {
     overflow: auto;
     margin-top: 100px;
+  }
+  .dark_theme_container, .light_theme_container{
+    gap:3px;
+    right: 0;
+    font-size: 9px;
+  }
+  .dark_theme_container label{
+    margin-right: 0 !important ;
+  }
+  .light_theme_container label{
+    margin-right: 0 !important;
   }
   .main_container {
     height: 100%;
