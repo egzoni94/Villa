@@ -1,10 +1,10 @@
 import {
+  Box,
   FormControl,
-  FormControlLabel,
   InputLabel,
   MenuItem,
   Select,
-  Switch,
+  Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
@@ -16,7 +16,6 @@ import Paper from "@mui/material/Paper";
 import { formatDateTime } from "../utilities/utils";
 import { ButtonComponent } from "../utilities/buttons";
 import ModalFormMain from "../utilities/modalFormMain";
-import { useNavigate } from "react-router-dom";
 
 interface OrderRow {
   id: number | string;
@@ -28,7 +27,7 @@ interface OrderRow {
 }
 
 export const Orders = () => {
-  const { toggleTheme, theme } = useTheme();
+  const { theme } = useTheme();
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [users, setUsers] = useState<
     { userId: number; username: string; isActive: boolean }[]
@@ -39,7 +38,9 @@ export const Orders = () => {
     isActive: false,
   });
   const [modalShow, setModalShow] = useState<"" | "barazo">("");
+  const [totalAmount, setTotalAmount] = useState(0);
 
+  const isAdmin = localStorage.getItem("isAdmin") || false
 
   useEffect(() => {
     document.body.className = theme;
@@ -84,14 +85,14 @@ export const Orders = () => {
         return params;
       },
     },
-    {
-      field: "employee",
-      headerName: "Puntori",
-      flex: 1,
-      headerAlign: "center",
-      align: "center",
-      minWidth: 100,
-    },
+    // {
+    //   field: "employee",
+    //   headerName: "Puntori",
+    //   flex: 1,
+    //   headerAlign: "center",
+    //   align: "center",
+    //   minWidth: 100,
+    // },
     {
       field: "enteredOn",
       headerName: "Koha e regjistrimit",
@@ -102,14 +103,16 @@ export const Orders = () => {
     },
   ];
 
-  let totalAmount = 0;
-  const navigate = useNavigate();
-
   useEffect(() => {
     const fetchOrders = async () => {
-      const employeeId = localStorage.getItem("userId") || "2";
+      const isAdmin = localStorage.getItem("isAdmin");
+      const employeeId = localStorage.getItem("userID");
+      if (isAdmin =="true" && user.userId ===0){
+        return;
+      }
+      const userId = isAdmin == "true" ? user.userId : employeeId;
       const orderList = await handleGet(
-        `api/Payment/GetByEmployee?employeeId=${employeeId}`
+        `api/Payment/GetByEmployee?employeeId=${userId}`
       );
 
       if (orderList.data) {
@@ -122,27 +125,35 @@ export const Orders = () => {
           enteredOn: formatDateTime(item.enteredOn),
         }));
 
-        totalAmount = rowsWithId.reduce(
+        const newTotalAmount = rowsWithId.reduce(
           (acc: number, curr: any) => acc + curr.amount,
           0
         );
+
+        setTotalAmount(newTotalAmount); // ✅ update totalAmount state
+
         const totalRow: OrderRow = {
           id: "",
           displayText: "TOTAL",
-          amount: totalAmount,
+          amount: newTotalAmount,
           isMistake: "",
           employee: "",
           enteredOn: "",
         };
+
         setRows([...rowsWithId, totalRow]);
       }
     };
-    const fetchUsers = async () => {
-      const response = await handleGet(`api/Users`);
-      setUsers(response.data);
-    };
-    if (isAdmin) fetchUsers();
 
+    const fetchUsers = async () => {
+      // to change ---
+      // const response = await handleGet(`api/GetStandartActive`);
+       const response = await handleGet(`api/Users`)
+      if (response.isSuccessfull) setUsers(response.data);
+      else toast.error(response.errorMessage)
+    };
+
+    if (isAdmin=="true") fetchUsers();
     fetchOrders();
   }, [user.userId]);
 
@@ -150,23 +161,20 @@ export const Orders = () => {
     return params.row.id === "" ? "total-row" : "";
   };
 
-  const isAdmin = localStorage.getItem("isAdmin") || true;
-  
   const handleEmployeeOrder = async () => {
-    if (!isAdmin) return;
+    if (isAdmin=="false") return;
     const response = await handleDelete(
       `api/Payment/ConfirmByEmployee?employeeId=${user.userId}`
     );
-    if (response.isSuccessfull){
+    if (response.isSuccessfull) {
       toast.success(`Ju jeni barazuar me puntorin "${user.username}"`);
-      setTimeout(()=>{
-        navigate("/orders")
-      },1750)
+      setTimeout(() => {
+        window.location.reload();
+      }, 1750);
+    } else {
+      toast.error(response.errorMessage);
     }
-    else {
-        toast.error(response.errorMessage)
-    }
-  }
+  };
 
   const orderFieldConfig = useMemo(() => {
     if (!user.userId) return [];
@@ -203,23 +211,23 @@ export const Orders = () => {
         ],
       },
     ];
-  }, [user.userId]);
+  }, [user.userId, totalAmount]); 
 
   return (
     <div className="main_container">
       <ToastContainer />
       <div className="dark_theme_container">
-        <FormControlLabel
-          control={<Switch checked={theme === "dark"} onChange={toggleTheme} />}
-          label=""
-        />
-        <MainHeader extra={"Home"}/>
+        <MainHeader extra={"Home"} />
       </div>
 
-      <Paper
-        sx={{ height: "calc(100vh - 180px)", width: "100%", marginTop: "64px" }}
-      >
-        {isAdmin && (
+      {isAdmin == "true" ? (
+        <Paper
+          sx={{
+            height: "calc(100vh - 180px)",
+            width: "100%",
+            marginTop: "64px",
+          }}
+        >
           <div style={{ display: "flex", gap: "25px", alignItems: "center" }}>
             <FormControl
               fullWidth
@@ -252,20 +260,49 @@ export const Orders = () => {
               variant="outlined"
               size="small"
               style={{ fontSize: "10px", height: "35px" }}
+              disabled={!user?.userId || totalAmount <= 0}
               onClick={() => setModalShow("barazo")}
             >
               Barazo
             </ButtonComponent>
           </div>
-        )}
 
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          sx={{ border: 0 }}
-          getRowClassName={getRowClassName}
-        />
-      </Paper>
+          {rows.length <= 1  ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+            >
+              <Typography variant="body1" color="textSecondary">
+                {user.userId === 0 ?  "Zgjedhni puntorin qe ti shihni te dhenat !" : `Ska te dhena per puntorin "${user.username}"`}
+              </Typography>
+            </Box>
+          ) : (
+            <DataGrid
+              rows={rows}
+              columns={columns}
+              sx={{ border: 0 }}
+              getRowClassName={getRowClassName}
+            />
+          )}
+        </Paper>
+      ) : (
+        <Paper
+          sx={{
+            height: "calc(100vh - 180px)",
+            width: "100%",
+            marginTop: "64px",
+          }}
+        >
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            sx={{ border: 0 }}
+            getRowClassName={getRowClassName}
+          />
+        </Paper>
+      )}
       {modalShow === "barazo" && (
         <div style={{ position: "relative", zIndex: 20 }}>
           <ModalFormMain

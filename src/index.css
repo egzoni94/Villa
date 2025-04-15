@@ -85,8 +85,9 @@ code {
 /* Media query for screens under 600px */
 @media screen and (max-width: 600px) {
   .rooms_container {
-    overflow: auto;
+    /* overflow: auto; */
     margin-top: 100px;
+    margin-bottom: 30px;
   }
   .dark_theme_container, .light_theme_container{
     gap:3px;

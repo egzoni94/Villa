@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { handleGet, handlePost, handlePut } from "../utilities/handleApiCalls";
 import { useTheme } from "../utilities/theme";
-import { FormControlLabel, Switch, Card } from "@mui/material";
+import { Card } from "@mui/material";
 import { House } from "lucide-react";
 import ModalFormMain from "../utilities/modalFormMain";
 import { Colors } from "../utilities/colors";
@@ -34,7 +34,7 @@ export function HomePage() {
   const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const [roomTypes, setRoomTypes] = useState<{ value: string; label: string; price?: number; hours?: number; isCustom?: boolean }[]>([]);
-  const { toggleTheme, theme } = useTheme();
+  const { theme } = useTheme();
   const [modalType, setModalType] = useState<"" | "new" | "details" | "extraDetails" | "continue" | "confirmPayment" | "mistake" | "change">("");
   const [openRooms, setOpenRooms] = useState<{ value: string; label: string }[]>([]);
   const [openRoomDetails, setOpenRoomDetails] = useState({actualRoomMovementId: {}, newRoomNo: {}, newRoomTitle: {}});
@@ -147,6 +147,9 @@ export function HomePage() {
           }))
         );
       }
+      else {
+        toast.error(res.errorMessage);
+      }
       setModalType("new");
     } 
   };
@@ -194,6 +197,9 @@ export function HomePage() {
           price: type.price
         })))
     }
+    else {
+      toast.error(detailResponse.errorMessage);
+    }
     setModalType("continue")
   }
 
@@ -215,6 +221,10 @@ export function HomePage() {
         window.location.reload();
       },1750)
     }
+    else {
+      toast.error(extraRoomResponse.errorMessage);
+    }
+    
   };
 
   const handleCloseRoom = async () => {
@@ -229,6 +239,9 @@ export function HomePage() {
         window.location.reload();
       },1750)
     }
+    else {
+      toast.error(handleCloseRoomResponse.errorMessage);
+    }
   }
 
   const handlePaymentModal=async () => {
@@ -239,6 +252,9 @@ export function HomePage() {
     if (paymentResponse.isSuccessfull) {
       setPaymentMessage(paymentResponse)
       setModalType("confirmPayment")
+    }
+    else {
+      toast.error(paymentResponse.errorMessage);
     }
   }
 
@@ -252,6 +268,9 @@ export function HomePage() {
       setTimeout(()=>{
         window.location.reload();
       },1750)
+    }
+    else {
+      toast.error(response.errorMessage);
     }
   }
 
@@ -418,7 +437,7 @@ export function HomePage() {
             type: "button" as const,
             label: "Hap",
             props: {
-              variant: "contained",
+              variant: "outlined",
               color: "primary",
               onClick: handleOpenRoom,
             },
@@ -427,8 +446,8 @@ export function HomePage() {
             type: "button" as const,
             label: "Mbyll",
             props: {
-              variant: "contained",
-              color: "primary",
+              variant: "outlined",
+              color: "error",
               onClick: () => handleCloseRoom,
             },
           },
@@ -752,7 +771,7 @@ export function HomePage() {
             type: "button" as const,
             label: "Vazhdo",
             props: {
-              variant: "contained",
+              variant: "outlined",
               color: "info",
               onClick: handleContinueRoom,
             },
@@ -763,7 +782,7 @@ export function HomePage() {
                 type: "button" as const,
                 label: "Pagesa",
                 props: {
-                  variant: "contained",
+                  variant: "outlined",
                   color: "warning",
                   onClick: handlePaymentModal,
                 },
@@ -775,7 +794,7 @@ export function HomePage() {
               type:"button" as const,
               label:"Gabim",
               props: {
-                variant: "contained",
+                variant: "outlined",
                 color: "error",
                 onClick: handleMistakeModal,
               }
@@ -787,7 +806,7 @@ export function HomePage() {
               type:"button" as const,
               label:"Ndrro",
               props: {
-                variant: "contained",
+                variant: "outlined",
                 color: "error",
                 onClick: handleChangeRoom,
               }
@@ -798,8 +817,8 @@ export function HomePage() {
             type: "button" as const,
             label: "Mbyll",
             props: {
-              variant: "contained",
-              color: "info",
+              variant: "outlined",
+              color: "error",
               onClick: handleCloseRoom,
             },
           },
@@ -954,11 +973,6 @@ export function HomePage() {
     <div className="main_container">
       <ToastContainer />
       <div className="dark_theme_container">
-        <FormControlLabel
-            control={<Switch checked={theme === "dark"} onChange={toggleTheme} />}
-            // label={theme === "light" ? "Switch to Dark" : "Switch to Light"}
-            label=""
-          />
         <MainHeader/>
       </div>
       <div

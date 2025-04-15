@@ -1,4 +1,4 @@
-import { Eye, House, Key, LogOutIcon } from "lucide-react";
+import { Eye, House, Key, ListEnd, LogOutIcon, PlusCircle, Store, Users } from "lucide-react";
 import { ButtonComponent } from "../utilities/buttons"
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -6,34 +6,32 @@ import { useEffect, useMemo, useState } from "react";
 import ModalFormMain from "../utilities/modalFormMain";
 import { useTheme } from "../utilities/theme";
 import { handlePut } from "../utilities/handleApiCalls";
+import { FormControlLabel, Switch, Card } from "@mui/material";
+
 
 export const MainHeader = (props:any) => {
   const extra=props?.extra
   const navigate = useNavigate();
   const [modalType, setModalType] = useState<"" | "changePassword">("");
-
-  // const [openRoomDetails, setOpenRoomDetails] = useState({actualRoomMovementId: {}, newRoomNo: {}, newRoomTitle: {}});
-  const userId = localStorage.getItem("userId") || "7";
-  const [userData, setUserData] = useState({
-    userId,
-    oldPassword: "",
-    password: "",
-  });
-  const { theme } = useTheme();
+  const userId = localStorage.getItem("userID");
+  const isAdmin = localStorage.getItem("isAdmin") || false;
+  const { toggleTheme, theme } = useTheme();
+  const [userData, setUserData] = useState({userId, oldPassword: "", password: ""});
   const handleChangePassword = async () => {
-    if (!userData.userId) return;
+    if (!userData.userId)   {
+      toast.error("Shenoni passwordin e vjeter!")
+      return;
+    }
     if (!userData.oldPassword){
         toast.error("Shenoni passwordin e vjeter!")
         return;
     }
-
     if (!userData.password){
         toast.error("Shenoni passwordin e ri!")
         return;
     }
-    
     const response = await handlePut(
-      `api/ChangePassword?userId=7&oldPassword=${userData.oldPassword}&password=${userData.password}`
+      `api/ChangePassword?userId=${userData.userId}&oldPassword=${userData.oldPassword}&password=${userData.password}`
     );
 
     if (response.isSuccessfull) {
@@ -42,8 +40,6 @@ export const MainHeader = (props:any) => {
         setModalType("");
     } else {
         toast.error(response.errorMessage);
-        setUserData({userId, oldPassword: "", password: ""});
-        setModalType("");
     }
   };
 
@@ -106,7 +102,6 @@ export const MainHeader = (props:any) => {
       },
     ];
   }, [userData]);
-  console.log(props)
   return (
     <>
       {modalType === "changePassword" && (
@@ -119,6 +114,46 @@ export const MainHeader = (props:any) => {
           />
         </div>
       )}
+
+      {isAdmin == "true" && 
+        <ButtonComponent
+          color="primary"
+          variant="outlined"
+          size="small"
+          style={{ fontSize: "10px" }}
+          startIcon={<Users size={15} />}
+          onClick={() => navigate("/users")}
+        >
+          Perdoruesit
+        </ButtonComponent>
+      }   
+
+      {isAdmin == "true" && 
+        <ButtonComponent
+          color="primary"
+          variant="outlined"
+          size="small"
+          style={{ fontSize: "10px" }}
+          startIcon={<ListEnd size={15} />}
+          onClick={() => navigate("/orders")}
+        >
+        Barazo
+        </ButtonComponent>
+      }      
+
+      {isAdmin == "true" && 
+        <ButtonComponent
+          color="primary"
+          variant="outlined"
+          size="small"
+          style={{ fontSize: "10px" }}
+          startIcon={<PlusCircle size={15} />}
+          onClick={() => navigate("/")}
+        >
+         Shto Stok
+       </ButtonComponent>
+      }      
+      
       {extra && (
         <ButtonComponent
           color="primary"
@@ -131,18 +166,19 @@ export const MainHeader = (props:any) => {
           Home
         </ButtonComponent>
       )}
+
       <ButtonComponent
-        color="primary"
+        color="info"
         variant="outlined"
         size="small"
         style={{ fontSize: "10px" }}
-        startIcon={<Eye size={15} />}
+        startIcon={<Store size={15} />}
       >
         Stoku
       </ButtonComponent>
 
-      <ButtonComponent
-        color="secondary"
+      {isAdmin=="false" && <ButtonComponent
+        color="success"
         variant="outlined"
         size="small"
         style={{ fontSize: "10px" }}
@@ -150,7 +186,7 @@ export const MainHeader = (props:any) => {
         onClick={() => navigate("/orders")}
       >
         Shiko Pazarin
-      </ButtonComponent>
+      </ButtonComponent>}
 
       <ButtonComponent
         color="secondary"
@@ -179,6 +215,11 @@ export const MainHeader = (props:any) => {
       >
         Dil
       </ButtonComponent>
+
+      <FormControlLabel
+        control={<Switch checked={theme === "dark"} onChange={toggleTheme} />}
+        label=""
+      />
     </>
   );
 };

@@ -59,11 +59,19 @@ export const handlePut = async (url: any, data?: any, config = {}) => {
 };
 
 // Handle DELETE request
-export const handleDelete = async (url: any, config = {}) => {
+export const handleDelete = async (url: any, data?: any, config = {}) => {
   try {
-    const response = await axios.delete(`${API_URL}${url}`, config);
+    const token = localStorage.getItem("access_token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const finalConfig = {
+      ...config,
+      headers,
+      data,
+    };
+
+    const response = await axios.delete(`${API_URL}${url}`, finalConfig);
     return response.data;
-   } catch (error : any) {
+  } catch (error: any) {
     console.error("Error with DELETE request:", error);
     return {
       error: true,

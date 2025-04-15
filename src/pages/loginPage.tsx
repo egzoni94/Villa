@@ -29,7 +29,10 @@ const LoginPage: React.FC = () => {
       const params = `?username=${username}&password=${password}`;
       const response = await handlePost(url + params);
       if (response.isSuccessfull) {
-        localStorage.setItem("access_token", response.data);
+        localStorage.setItem("access_token", response.data?.token);
+        localStorage.setItem("userID",response?.data?.userId)
+        localStorage.setItem("username", response?.data?.username);
+        localStorage.setItem("isAdmin", response?.data?.isAdmin);
         navigate("/home");
       }
       else if (!response.isSuccessfull) {
@@ -55,12 +58,17 @@ const LoginPage: React.FC = () => {
       },
     },
     {
-      type: "text" as const, // Type assertion to ensure it matches the expected type
+      type: "text" as const,
       label: "Password",
       props: {
         value: password,
         onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
           setPassword(e.target.value),
+        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === "Enter") {
+            handleLogin();
+          }
+        },
         variant: "outlined",
         fullWidth: true,
         margin: "normal",
@@ -69,10 +77,12 @@ const LoginPage: React.FC = () => {
     },
     {
       type: "button" as const, // Type assertion to ensure it matches the expected type
-      label: "Login",
+      label: "Konfirmo",
       props: {
-        variant: "contained",
+        variant: "outlined",
         color: "primary",
+        size: "large",
+        style: { fontSize: "16px", fontWeight:"bold" },
       },
     },
   ];
@@ -89,7 +99,7 @@ const LoginPage: React.FC = () => {
       </div>
       <Container maxWidth="sm">
         <Typography variant="h4" gutterBottom>
-          Login
+          Kyqu
         </Typography>
         <ModalForm fieldConfig={fieldConfig} onSubmit={() => handleLogin()} />
       </Container>
