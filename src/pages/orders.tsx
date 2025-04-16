@@ -40,7 +40,7 @@ export const Orders = () => {
   const [modalShow, setModalShow] = useState<"" | "barazo">("");
   const [totalAmount, setTotalAmount] = useState(0);
 
-  const isAdmin = localStorage.getItem("isAdmin") || false
+  const isAdmin = localStorage.getItem("isAdmin") || false;
 
   useEffect(() => {
     document.body.className = theme;
@@ -107,7 +107,7 @@ export const Orders = () => {
     const fetchOrders = async () => {
       const isAdmin = localStorage.getItem("isAdmin");
       const employeeId = localStorage.getItem("userID");
-      if (isAdmin =="true" && user.userId ===0){
+      if (isAdmin == "true" && user.userId === 0) {
         return;
       }
       const userId = isAdmin == "true" ? user.userId : employeeId;
@@ -148,12 +148,12 @@ export const Orders = () => {
     const fetchUsers = async () => {
       // to change ---
       // const response = await handleGet(`api/GetStandartActive`);
-       const response = await handleGet(`api/Users`)
+      const response = await handleGet(`api/Users`);
       if (response.isSuccessfull) setUsers(response.data);
-      else toast.error(response.errorMessage)
+      else toast.error(response.errorMessage);
     };
 
-    if (isAdmin=="true") fetchUsers();
+    if (isAdmin == "true") fetchUsers();
     fetchOrders();
   }, [user.userId]);
 
@@ -162,7 +162,7 @@ export const Orders = () => {
   };
 
   const handleEmployeeOrder = async () => {
-    if (isAdmin=="false") return;
+    if (isAdmin == "false") return;
     const response = await handleDelete(
       `api/Payment/ConfirmByEmployee?employeeId=${user.userId}`
     );
@@ -211,7 +211,9 @@ export const Orders = () => {
         ],
       },
     ];
-  }, [user.userId, totalAmount]); 
+  }, [user.userId, totalAmount]);
+
+  console.log(rows);
 
   return (
     <div className="main_container">
@@ -267,7 +269,7 @@ export const Orders = () => {
             </ButtonComponent>
           </div>
 
-          {rows.length <= 1  ? (
+          {rows.length <= 1 ? (
             <Box
               display="flex"
               justifyContent="center"
@@ -275,7 +277,9 @@ export const Orders = () => {
               height="100%"
             >
               <Typography variant="body1" color="textSecondary">
-                {user.userId === 0 ?  "Zgjedhni puntorin qe ti shihni te dhenat !" : `Ska te dhena per puntorin "${user.username}"`}
+                {user.userId === 0
+                  ? "Zgjedhni puntorin qe ti shihni te dhenat !"
+                  : `Ska te dhena per puntorin "${user.username}"`}
               </Typography>
             </Box>
           ) : (
@@ -295,12 +299,25 @@ export const Orders = () => {
             marginTop: "64px",
           }}
         >
-          <DataGrid
-            rows={rows}
-            columns={columns}
-            sx={{ border: 0 }}
-            getRowClassName={getRowClassName}
-          />
+          {rows.length <= 1 ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+            >
+              <Typography variant="body1" color="textSecondary">
+                Ska te dhena per puntorin
+              </Typography>
+            </Box>
+          ) : (
+            <DataGrid
+              rows={rows}
+              columns={columns}
+              sx={{ border: 0 }}
+              getRowClassName={getRowClassName}
+            />
+          )}
         </Paper>
       )}
       {modalShow === "barazo" && (
