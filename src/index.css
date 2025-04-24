@@ -79,6 +79,127 @@ code {
   background-color: #3ca133 !important;
   color: #000;
 }
+
+.stock-container {
+  height: 100%;
+  width: 100%;
+}
+
+.stock-header {
+  background-color: #121212;
+}
+
+.stock-body {
+  height: calc(100% - 80px);
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.stock-category-panel {
+  flex: 1 1 250px;
+  max-width: 350px;
+  padding: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid black;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: end;
+}
+
+.stock-category-item {
+  width: 140px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  background-color: yellow;
+  color: #333;
+  transition: 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stock-category{
+  display: flex;
+  gap:10px;
+  justify-content: space-between;
+  border:1px solid rgb(65, 51, 140);
+  padding:10px;
+  padding-left: 20px;
+}
+
+.stock-category-item.active {
+  background-color: #1976d2;
+  color: white;
+}
+
+.stock-product-panel {
+  flex: 2 1 400px;
+  padding: 16px;
+  overflow-y: auto;
+  border: 1px solid black;
+  box-sizing: border-box;
+}
+
+.stock-product-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.stock-product-card {
+  width: 140px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.stock-product-img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.stock-product-info {
+  text-align: center;
+  width: 100%;
+}
+
+.stock-product-title {
+  margin: 0;
+  font-weight: bold;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stock-product-price {
+  margin: 0;
+  color: #888;
+  font-size: 13px;
+}
+
+.stock-product-placeholder {
+  text-align: center;
+  width: 100%;
+  margin-top: 40px;
+  color: #666;
+  font-size: 16px;
+}
+
 /* .MuiInputBase-input,.MuiSelect-select { 
   height: 10px !important;
 } */

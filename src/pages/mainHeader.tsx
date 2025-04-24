@@ -141,7 +141,7 @@ export const MainHeader = (props:any) => {
         </ButtonComponent>
       }      
 
-      {isAdmin == "true" && 
+      {/* {isAdmin == "true" && 
         <ButtonComponent
           color="primary"
           variant="outlined"
@@ -152,7 +152,7 @@ export const MainHeader = (props:any) => {
         >
          Shto Stok
        </ButtonComponent>
-      }      
+      }       */}
       
       {extra && (
         <ButtonComponent
@@ -173,6 +173,7 @@ export const MainHeader = (props:any) => {
         size="small"
         style={{ fontSize: "10px" }}
         startIcon={<Store size={15} />}
+        onClick={() => navigate("/stock")}
       >
         Stoku
       </ButtonComponent>
