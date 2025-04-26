@@ -347,22 +347,26 @@ export const Stock = () => {
       <div className="stock-body">
         {/* Category List */}
         <div className="stock-category-panel">
-          <ButtonComponent
-            color="primary"
-            variant="outlined"
-            size="small"
-            style={{ fontSize: "10px" }}
-            startIcon={<CirclePlus size={15} />}
-            onClick={() => {
-              setModalType("addCategory");
-              setCategoryItem((prev) => ({
-                ...prev,
-                code: String(category.length + 1),
-              }));
-            }}
-          >
-            Shto
-          </ButtonComponent>
+          <div className="header_stock_panel">
+            <p>Kategoria</p>
+            <ButtonComponent
+              color="primary"
+              variant="outlined"
+              size="small"
+              style={{ fontSize: "10px" }}
+              startIcon={<CirclePlus size={15} />}
+              onClick={() => {
+                setModalType("addCategory");
+                setCategoryItem((prev) => ({
+                  ...prev,
+                  code: String(category.length + 1),
+                }));
+              }}
+            >
+              Shto
+            </ButtonComponent>
+          </div>
+
           {category.length > 0 ? (
             category.map((cat) => (
               <div key={cat.code} className="stock-category">
@@ -410,6 +414,29 @@ export const Stock = () => {
 
         {/* Product List */}
         <div className="stock-product-panel">
+          {filteredProducts.length > 0 && (
+            <div className="header_stock_panel">
+              <p>Produktet</p>
+              <ButtonComponent
+                color="primary"
+                variant="outlined"
+                size="small"
+                style={{ fontSize: "10px" }}
+                startIcon={<CirclePlus size={15} />}
+                onClick={() => {
+                  // setModalType("addCategory");
+                  // setCategoryItem((prev) => ({
+                  //   ...prev,
+                  //   code: String(category.length + 1),
+                  // }));
+                  console.log(selectedCategory)
+                  // here to handle the add product modal ...
+                }}
+              >
+                Shto
+              </ButtonComponent>
+            </div>
+          )}
           {selectedCategory ? (
             filteredProducts.length > 0 ? (
               <div className="stock-product-list">
@@ -422,6 +449,34 @@ export const Stock = () => {
                       <p className="stock-product-price">
                         ${product.price.toFixed(2)}
                       </p>
+                      <div className="button_container">
+                        <ButtonComponent
+                          color="info"
+                          variant="outlined"
+                          size="small"
+                          style={{ fontSize: "10px" }}
+                          startIcon={<Edit size={15} />}
+                          onClick={() => {
+                            // setCategoryItem(cat);
+                            setModalType("editCategory");
+                          }}
+                        >
+                          Ndrysho
+                        </ButtonComponent>
+                        <ButtonComponent
+                          color="error"
+                          variant="outlined"
+                          size="small"
+                          style={{ fontSize: "10px" }}
+                          startIcon={<XCircleIcon size={15} />}
+                          onClick={() => {
+                            // setCategoryItem(cat);
+                            setModalType("deleteCategory");
+                          }}
+                        >
+                          Fshi
+                        </ButtonComponent>
+                      </div>
                     </div>
                   </div>
                 ))}

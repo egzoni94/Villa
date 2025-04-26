@@ -109,7 +109,6 @@ code {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  align-items: end;
 }
 
 .stock-category-item {
@@ -150,6 +149,7 @@ code {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+  margin-top: 16px;
 }
 
 .stock-product-card {
@@ -198,6 +198,18 @@ code {
   margin-top: 40px;
   color: #666;
   font-size: 16px;
+}
+.button_container{
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.header_stock_panel{
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  text-transform: uppercase;
+  font-weight: bold;
 }
 
 /* .MuiInputBase-input,.MuiSelect-select { 
