@@ -14,9 +14,10 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export const Stock = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Record<string, any> | null>(null);
+  
   const [modalType, setModalType] = useState<
-    "" | "addCategory" | "editCategory" | "deleteCategory"
+    "" | "addCategory" | "editCategory" | "deleteCategory" | "deleteProduct" | "editProduct" | "addProduct"
   >("");
   type Category = {
     code: string;
@@ -36,6 +37,7 @@ export const Stock = () => {
 
   const [category, setCategory] = useState<Category[]>([]);
   const [products, setProducts] = useState<Products[]>([]);
+  const [selectedItem, setSelectedItem] = useState<Record<string, any>>({});
 
   const navigate = useNavigate();
 
@@ -133,6 +135,59 @@ export const Stock = () => {
     );
     if (response.isSuccessfull) {
       toast.success("Kategoria u fshi!");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1750);
+    } else if (response.error) {
+      toast.error(response.errorMessage);
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!selectedItem) return ;
+    const body={
+      category: selectedCategory?.code || "",
+      orderNo:0,
+      ...selectedItem
+
+    }
+    const response = await handlePost(`api/Product/Add`, body);
+    if (response.isSuccessfull) {
+      toast.success("Produkti u shtua");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1750);
+    } else toast.error(response.errorMessage);
+  };
+
+  const handleEditProduct = async () => {
+    if (!selectedItem) return;
+    const body = {
+      code: selectedItem.code,
+      title: selectedItem.title,
+      category: selectedItem.category,
+      isActive: selectedItem.isActive,
+      orderNo: selectedItem.orderNo,
+      price: selectedItem.price
+    }
+
+    const response = await handlePut(`api/Product/Update`, body);
+    if (response.isSuccessfull) {
+      toast.success("Produkti u ndryshua");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1750);
+    } else toast.error(response.errorMessage);
+
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!selectedItem) return;
+    const response = await handleDelete(
+      `api/Product/Remove?code=${selectedItem.code}`
+    );
+    if (response.isSuccessfull) {
+      toast.success("Produkti u fshi!");
       setTimeout(() => {
         window.location.reload();
       }, 1750);
@@ -330,12 +385,249 @@ export const Stock = () => {
       `api/Product/GetByCategory?category=${cat.code}`
     );
     if (response.isSuccessfull) {
-      setSelectedCategory(cat.code);
+      setSelectedCategory(cat);
       setFilteredProducts(response.data);
     } else {
       toast.error(response.errorMessage);
     }
   };
+
+  const addProduct =  useMemo(() => {
+      return [
+        {
+          type: "text" as const,
+          label: "Kode",
+          props: {
+            value: selectedItem.code,
+            variant: "outlined",
+            fullWidth: true,
+            margin: "normal",
+            disabled: true,
+          },
+        },
+        {
+          type: "text" as const,
+          label: "Kategoria",
+          props: {
+            value: selectedCategory?.description || "",
+            variant: "outlined",
+            fullWidth: true,
+            margin: "normal",
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+              setSelectedItem((prev) => ({
+                ...prev,
+                description: e.target.value,
+              }));
+            },
+            disabled: true,
+          },
+        },
+        {
+          type: "text" as const,
+          label: "Produkti",
+          props: {
+            value: selectedItem.title,
+            variant: "outlined",
+            fullWidth: true,
+            margin: "normal",
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+              const value = e.target.value;
+
+              setSelectedItem((prev) => ({
+                ...prev,
+                title: e.target.value,
+              }));
+            },
+          },
+        },
+        {
+          type: "text" as const,
+          label: "Qmimi",
+          props: {
+            value: selectedItem.price,
+            variant: "outlined",
+            fullWidth: true,
+            margin: "normal",
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+              const value = e.target.value;
+
+              if (/^\d*\.?\d*$/.test(value)) {
+                setSelectedItem((prev) => ({
+                  ...prev,
+                  price: e.target.value,
+                }));
+              }
+            },
+          },
+        },
+        {
+          type: "checkbox" as const,
+          label: "Aktiv",
+          props: {
+            checked: selectedItem.isActive,
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+              setSelectedItem((prev) => ({
+                ...prev,
+                isActive: e.target.checked,
+              }));
+            },
+          },
+        },
+        {
+          type: "group" as const,
+          fields: [
+            {
+              type: "button" as const,
+              label: "Konfirmo",
+              props: {
+                variant: "outlined",
+                color: "success",
+                onClick: handleAddProduct,
+              },
+            },
+            {
+              type: "button" as const,
+              label: "Mbyll",
+              props: {
+                variant: "outlined",
+                color: "warning",
+                onClick: () => {
+                  setModalType("");
+                  setSelectedItem({
+                    code: "",
+                    description: "",
+                    isActive: false,
+                  });
+                },
+              },
+            },
+          ],
+        },
+      ];
+  }, [selectedItem,selectedCategory]);
+
+  const editProduct =  useMemo(() => {
+    return [
+      {
+        type: "text" as const,
+        label: "Kode",
+        props: {
+          value: selectedItem.code,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          disabled: true,
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Titulli",
+        props: {
+          value: selectedItem.title,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+            setSelectedItem((prev) => ({
+              ...prev,
+              title: e.target.value,
+            }));
+          },
+        },
+      },
+      {
+        type: "text" as const,
+        label: "Qmimi",
+        props: {
+          value: selectedItem.price,
+          variant: "outlined",
+          fullWidth: true,
+          margin: "normal",
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+            setSelectedItem((prev) => ({
+              ...prev,
+              price: e.target.value,
+            }));
+          },
+        },
+      },
+      {
+        type: "checkbox" as const,
+        label: "Aktiv",
+        props: {
+          checked: selectedItem.isActive,
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+            setSelectedItem((prev) => ({
+              ...prev,
+              isActive: e.target.checked,
+            }));
+          },
+        },
+      },
+      {
+        type: "group" as const,
+        fields: [
+          {
+            type: "button" as const,
+            label: "Konfirmo",
+            props: {
+              variant: "outlined",
+              color: "success",
+              onClick: handleEditProduct,
+            },
+          },
+          {
+            type: "button" as const,
+            label: "Mbyll",
+            props: {
+              variant: "outlined",
+              color: "warning",
+              onClick: () => {
+                setModalType("");
+                setSelectedItem({ code: "", description: "", isActive: false });
+              }
+            },
+          },
+        ],
+      },
+    ];
+  }, [selectedItem, selectedCategory]);
+
+  const deleteProduct =  useMemo(() => {
+    return [
+      {
+        type: "title" as const,
+        label: `A doni te fshini produktin "${selectedItem.title}" `,
+        props: {
+          variant: "contained",
+          color: "primary",
+        },
+      },
+      {
+        type: "group" as const,
+        fields: [
+          {
+            type: "button" as const,
+            label: "Konfirmo",
+            props: {
+              variant: "outlined",
+              color: "success",
+              onClick: handleDeleteProduct,
+            },
+          },
+          {
+            type: "button" as const,
+            label: "Mbyll",
+            props: {
+              variant: "outlined",
+              color: "warning",
+              onClick: () => setModalType(""),
+            },
+          },
+        ],
+      },
+    ];
+  }, [selectedItem, selectedCategory]);
 
   return (
     <div className="main_container">
@@ -374,7 +666,7 @@ export const Stock = () => {
                   key={cat.code}
                   onClick={() => handleSelectCategory(cat)}
                   className={`stock-category-item ${
-                    selectedCategory === cat.code ? "active" : ""
+                    selectedCategory?.code == cat.code ? "active" : ""
                   }`}
                 >
                   {cat.description}
@@ -414,30 +706,28 @@ export const Stock = () => {
 
         {/* Product List */}
         <div className="stock-product-panel">
-          {filteredProducts.length > 0 && (
             <div className="header_stock_panel">
               <p>Produktet</p>
-              <ButtonComponent
+              {selectedCategory?.description && <ButtonComponent
                 color="primary"
                 variant="outlined"
                 size="small"
                 style={{ fontSize: "10px" }}
                 startIcon={<CirclePlus size={15} />}
                 onClick={() => {
-                  // setModalType("addCategory");
-                  // setCategoryItem((prev) => ({
-                  //   ...prev,
-                  //   code: String(category.length + 1),
-                  // }));
-                  console.log(selectedCategory)
-                  // here to handle the add product modal ...
+                  setSelectedItem((prev) => ({
+                    ...prev,
+                    code: String(filteredProducts.length + 1),
+                  }));
+                  setModalType("addProduct");
                 }}
               >
                 Shto
               </ButtonComponent>
+              }
             </div>
-          )}
-          {selectedCategory ? (
+
+          {selectedCategory?.code ? (
             filteredProducts.length > 0 ? (
               <div className="stock-product-list">
                 {filteredProducts.map((product) => (
@@ -447,7 +737,7 @@ export const Stock = () => {
                         {product.title}
                       </p>
                       <p className="stock-product-price">
-                        ${product.price.toFixed(2)}
+                        {product.price.toFixed(2)}€
                       </p>
                       <div className="button_container">
                         <ButtonComponent
@@ -458,7 +748,8 @@ export const Stock = () => {
                           startIcon={<Edit size={15} />}
                           onClick={() => {
                             // setCategoryItem(cat);
-                            setModalType("editCategory");
+                            setModalType("editProduct");
+                            setSelectedItem(product);
                           }}
                         >
                           Ndrysho
@@ -471,7 +762,8 @@ export const Stock = () => {
                           startIcon={<XCircleIcon size={15} />}
                           onClick={() => {
                             // setCategoryItem(cat);
-                            setModalType("deleteCategory");
+                            setModalType("deleteProduct");
+                            setSelectedItem(product);
                           }}
                         >
                           Fshi
@@ -496,34 +788,37 @@ export const Stock = () => {
 
       {modalType === "addCategory" && (
         <div style={{ position: "relative", zIndex: 20 }}>
-          <ModalFormMain
-            fieldConfig={addCategory}
-            onClose={() => setModalType("")}
-            zIndex={20}
-            theme={theme}
-          />
+          <ModalFormMain fieldConfig={addCategory} onClose={() => setModalType("")}  zIndex={20} theme={theme} />
         </div>
       )}
 
       {modalType === "editCategory" && (
         <div style={{ position: "relative", zIndex: 20 }}>
-          <ModalFormMain
-            fieldConfig={editCategory}
-            onClose={() => setModalType("")}
-            zIndex={20}
-            theme={theme}
-          />
+          <ModalFormMain fieldConfig={editCategory}  onClose={() => setModalType("")} zIndex={20}   theme={theme}   />
         </div>
       )}
 
       {modalType === "deleteCategory" && (
         <div style={{ position: "relative", zIndex: 20 }}>
-          <ModalFormMain
-            fieldConfig={deleteCategory}
-            onClose={() => setModalType("")}
-            zIndex={20}
-            theme={theme}
-          />
+          <ModalFormMain  fieldConfig={deleteCategory}  onClose={() => setModalType("")}  zIndex={20}  theme={theme} />
+        </div>
+      )}
+
+      {modalType === "addProduct" && (
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <ModalFormMain  fieldConfig={addProduct}    onClose={() => setModalType("")}  zIndex={20}  theme={theme}  />
+        </div>
+      )}
+
+      {modalType === "editProduct" && (
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <ModalFormMain  fieldConfig={editProduct}  onClose={() => setModalType("")}   zIndex={20} theme={theme}/>
+        </div>
+      )}
+
+      {modalType === "deleteProduct" && (
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <ModalFormMain   fieldConfig={deleteProduct}  onClose={() => setModalType("")}  zIndex={20} theme={theme} />
         </div>
       )}
     </div>
